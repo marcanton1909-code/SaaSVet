@@ -9,9 +9,8 @@
     body { background:#f1f5f9; }
     .card { background:white; border:1px solid #e2e8f0; border-radius:24px; box-shadow:0 1px 2px rgba(0,0,0,.04); }
     .input { width:100%; border:1px solid #e2e8f0; border-radius:16px; padding:10px 14px; outline:none; background:white; }
-    .input:focus { border-color:#94a3b8; box-shadow:0 0 0 3px rgba(148,163,184,.15); }
+    .input:focus, .small-input:focus { border-color:#94a3b8; box-shadow:0 0 0 3px rgba(148,163,184,.15); }
     .small-input { width:100%; border:1px solid #e2e8f0; border-radius:12px; padding:8px 10px; outline:none; background:white; }
-    .small-input:focus { border-color:#94a3b8; box-shadow:0 0 0 3px rgba(148,163,184,.15); }
     .tab-active { background:white; color:#020617; }
     .pill { border-radius:999px; padding:4px 10px; font-size:12px; font-weight:600; }
     @media print {
@@ -34,7 +33,7 @@
 
       <div class="mt-8 p-4 rounded-3xl bg-white/5 border border-white/10">
         <p class="text-sm text-slate-300">Enfoque del producto</p>
-        <p class="text-sm text-slate-400 mt-2 leading-relaxed">Sistema para clínica veterinaria con inventario, servicios, expedientes, remisiones, cobranza y recetas.</p>
+        <p class="text-sm text-slate-400 mt-2 leading-relaxed">Sistema para clínica veterinaria con inventario, catálogo, expedientes, remisiones, cobranza y recetas.</p>
       </div>
 
       <nav id="navTabs" class="mt-8 space-y-2"></nav>
@@ -53,11 +52,12 @@
   <div id="print-sheet" style="display:none;"></div>
 
 <script>
-(function() {
+(() => {
   const DOCTORS = ['Stephanie Gonzalez', 'Melissa Pérez', 'Emiliano Mireles'];
   const PAYMENT_METHODS = ['Efectivo', 'Transferencia', 'Tarjeta débito', 'Tarjeta crédito'];
+  const HISTORY_TYPES = ['Consulta', 'Procedimiento', 'Vacuna', 'Laboratorio', 'Desparasitación', 'Estudio', 'Anotaciones'];
 
-  const SERVICES = [
+  const initialServices = [
     ['CONSULTA DIA','Consulta',400],['CONSULTA NOCHE','Consulta',600],['APLI MED 0-5 KG','Aplicación',120],
     ['APLI MED 5-10 KG','Aplicación',140],['APLI MED 10-15 KG','Aplicación',160],['APLI MED 15-20 KG','Aplicación',180],
     ['APLI MED 20 KG +','Aplicación',220],['LIMPIEZA HERIDA','Procedimiento',100],['LIMPIEZA PROFUNDA','Procedimiento',200],
@@ -78,10 +78,10 @@
     paymentMethod: PAYMENT_METHODS[0],
     searchPatient: '',
     inventoryForm: { name:'', category:'', stock:'', unit:'', cost:'', price:'' },
-    serviceForm: { name:'', category:'', basePrice:'', duration:'', notes:'' },
-    patientForm: { petName:'', species:'', breed:'', age:'', birthDate:'', sex:'', ownerName:'', ownerAddress:'', email:'', phone:'', notes:'' },
-    quickPatientForm: { petName:'', species:'', breed:'', age:'', birthDate:'', sex:'', ownerName:'', ownerAddress:'', email:'', phone:'', notes:'' },
-    historyForm: { date:new Date().toISOString().slice(0,10), type:'Consulta', title:'', notes:'' },
+    catalogForm: { name:'', category:'', basePrice:'', duration:'', notes:'' },
+    patientForm: { petName:'', species:'', breed:'', age:'', birthDate:'', sex:'', doctor: DOCTORS[0], ownerName:'', ownerAddress:'', email:'', phone:'', notes:'' },
+    quickPatientForm: { petName:'', species:'', breed:'', age:'', birthDate:'', sex:'', doctor: DOCTORS[0], ownerName:'', ownerAddress:'', email:'', phone:'', notes:'' },
+    historyForm: { date:new Date().toISOString().slice(0,10), type:'Consulta', serviceId:'', notes:'' },
     prescriptionForm: { doctor: DOCTORS[0], body:'' },
     invoiceCart: [],
     inventory: [
@@ -99,10 +99,10 @@
       { id: 12, name: 'Tobracetil', category: 'Oftálmico', stock: 9, unit: 'pieza', cost: 130, price: 220 },
       { id: 13, name: 'L-Histamin', category: 'Medicamento', stock: 17, unit: 'caja', cost: 76, price: 132 }
     ],
-    services: SERVICES.map((s, i) => ({ id: i+1, name:s[0], category:s[1], basePrice:s[2], duration:'15 min', notes:'' })),
+    catalog: initialServices.map((s, i) => ({ id: i + 1, name:s[0], category:s[1], basePrice:s[2], duration:'15 min', notes:'' })),
     patients: [
-      { id:1, petName:'Luna', species:'Canino', breed:'Mestiza', age:'4 años', birthDate:'2022-03-20', sex:'Hembra', ownerName:'Daniela Ruiz', ownerAddress:'Av. Sierra Leona 245, San Luis Potosí', email:'daniela@email.com', phone:'8112345678', notes:'Paciente nerviosa en consulta.', documents:[{ id:11, name:'Cartilla_vacunacion_Luna.pdf', type:'application/pdf', size:'1.2 MB', uploadedAt:'2026-04-05' }], history:[{ id:101, date:'2026-04-01', type:'Consulta', title:'Consulta general', notes:'Se revisa estado general.' }]},
-      { id:2, petName:'Milo', species:'Felino', breed:'Siamés', age:'2 años', birthDate:'2024-01-10', sex:'Macho', ownerName:'Carlos Méndez', ownerAddress:'Priv. Lomas 18, San Luis Potosí', email:'carlos@email.com', phone:'8187654321', notes:'Alergia alimentaria en seguimiento.', documents:[], history:[]}
+      { id:1, petName:'Luna', species:'Canino', breed:'Mestiza', age:'4 años', birthDate:'2022-03-20', sex:'Hembra', doctor:'Stephanie Gonzalez', ownerName:'Daniela Ruiz', ownerAddress:'Av. Sierra Leona 245, San Luis Potosí', email:'daniela@email.com', phone:'8112345678', notes:'Paciente nerviosa en consulta.', documents:[{ id:11, name:'Cartilla_vacunacion_Luna.pdf', type:'application/pdf', size:'1.2 MB', uploadedAt:'2026-04-05' }], history:[{ id:101, date:'2026-04-01', type:'Consulta', title:'Consulta general', notes:'Se revisa estado general.' }]},
+      { id:2, petName:'Milo', species:'Felino', breed:'Siamés', age:'2 años', birthDate:'2024-01-10', sex:'Macho', doctor:'Melissa Pérez', ownerName:'Carlos Méndez', ownerAddress:'Priv. Lomas 18, San Luis Potosí', email:'carlos@email.com', phone:'8187654321', notes:'Alergia alimentaria en seguimiento.', documents:[], history:[]}
     ],
     invoices: [
       { id:1001, date:'2026-04-12', patientId:1, patientName:'Luna', ownerName:'Daniela Ruiz', items:[{ type:'service', name:'CONSULTA DIA', qty:1, unitPrice:400, total:400 }, { type:'inventory', name:'Tramadol', qty:1, unitPrice:150, total:150 }], paymentMethod:'Efectivo', subtotal:550, amountPaid:0, balance:550, status:'Pendiente' }
@@ -115,63 +115,49 @@
   const tabs = [
     { key:'dashboard', label:'Panel' },
     { key:'inventory', label:'Inventario' },
-    { key:'services', label:'Servicios' },
+    { key:'catalog', label:'Catálogo' },
     { key:'patients', label:'Expedientes' },
     { key:'invoices', label:'Remisiones' },
     { key:'billing', label:'Cobranza' },
     { key:'prescriptions', label:'Recetas' }
   ];
 
+  const app = document.getElementById('app');
   const money = (n) => new Intl.NumberFormat('es-MX', { style:'currency', currency:'MXN' }).format(Number(n || 0));
   const esc = (v) => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  const app = document.getElementById('app');
 
-  function selectedPatient() {
-    return state.patients.find(p => p.id === Number(state.selectedPatientId)) || state.patients[0] || null;
-  }
-  function invoicePatient() {
-    return state.patients.find(p => p.id === Number(state.selectedInvoicePatientId)) || state.patients[0] || null;
-  }
-  function prescriptionPatient() {
-    return state.patients.find(p => p.id === Number(state.selectedPrescriptionPatientId)) || state.patients[0] || null;
+  const selectedPatient = () => state.patients.find(p => p.id === Number(state.selectedPatientId)) || state.patients[0] || null;
+  const invoicePatient = () => state.patients.find(p => p.id === Number(state.selectedInvoicePatientId)) || state.patients[0] || null;
+  const prescriptionPatient = () => state.patients.find(p => p.id === Number(state.selectedPrescriptionPatientId)) || state.patients[0] || null;
+
+  function sectionTitle(title, subtitle, actionHtml='') {
+    return `<div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-5"><div><h2 class="text-xl md:text-2xl font-semibold text-slate-900">${esc(title)}</h2><p class="text-sm text-slate-500">${esc(subtitle)}</p></div>${actionHtml}</div>`;
   }
 
   function renderNav() {
-    document.getElementById('navTabs').innerHTML = tabs.map(t => `
-      <button data-tab="${t.key}" class="nav-btn w-full text-left px-4 py-3 rounded-2xl ${state.tab === t.key ? 'tab-active' : 'text-slate-300 hover:bg-white/5'}">${esc(t.label)}</button>
-    `).join('');
+    document.getElementById('navTabs').innerHTML = tabs.map(t => `<button data-tab="${t.key}" class="nav-btn w-full text-left px-4 py-3 rounded-2xl ${state.tab === t.key ? 'tab-active' : 'text-slate-300 hover:bg-white/5'}">${esc(t.label)}</button>`).join('');
     document.getElementById('doctorList').innerHTML = DOCTORS.map(d => `<div>${esc(d)}</div>`).join('');
-    document.querySelectorAll('.nav-btn').forEach(btn => {
-      btn.onclick = () => {
-        state.tab = btn.dataset.tab;
-        render();
-      };
-    });
+    document.querySelectorAll('.nav-btn').forEach(btn => btn.onclick = () => { state.tab = btn.dataset.tab; render(); });
   }
 
-  function sectionTitle(title, subtitle, actionHtml='') {
-    return `
-      <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-5">
-        <div>
-          <h2 class="text-xl md:text-2xl font-semibold text-slate-900">${esc(title)}</h2>
-          <p class="text-sm text-slate-500">${esc(subtitle)}</p>
-        </div>
-        ${actionHtml}
-      </div>
-    `;
+  function statCard(title, value, hint) {
+    return `<div class="card p-5"><p class="text-sm text-slate-500">${esc(title)}</p><p class="text-2xl font-semibold mt-1">${esc(value)}</p><p class="text-xs text-slate-400 mt-2">${esc(hint)}</p></div>`;
+  }
+
+  function featureCard(title, text) {
+    return `<div class="p-4 rounded-2xl bg-slate-50"><p class="font-medium text-slate-900 mb-1">${esc(title)}</p><p>${esc(text)}</p></div>`;
   }
 
   function renderDashboard() {
     const pending = state.invoices.filter(i => i.status !== 'Pagado').reduce((a,b) => a + b.balance, 0);
     const billed = state.invoices.reduce((a,b) => a + b.subtotal, 0);
     const paid = state.invoices.reduce((a,b) => a + b.amountPaid, 0);
-    const margin = state.inventory.reduce((a,b) => a + ((b.price - b.cost) * b.stock), 0);
-
+    const potentialMargin = state.inventory.reduce((a,b) => a + ((b.price - b.cost) * b.stock), 0);
     app.innerHTML = `
       ${sectionTitle('Panel general', 'Vista operativa, clínica y financiera de la veterinaria.')}
       <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         ${statCard('Pacientes registrados', state.patients.length, 'Expedientes activos')}
-        ${statCard('Servicios disponibles', state.services.length, 'Catálogo editable')}
+        ${statCard('Servicios en catálogo', state.catalog.length, 'Catálogo editable')}
         ${statCard('Cobranza pendiente', money(pending), 'Saldo por recuperar')}
         ${statCard('Recetas emitidas', state.prescriptions.length, 'Historial imprimible')}
       </div>
@@ -181,8 +167,8 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-slate-600">
             ${featureCard('Expediente conectado con remisiones', 'Todo servicio realizado queda ligado a la mascota.')}
             ${featureCard('Inventario editable', 'Los insumos pueden ajustarse directamente en tabla.')}
-            ${featureCard('Recetas listas para imprimir', 'Los médicos pueden imprimir o descargar el formato.')}
-            ${featureCard('Pago identificado', 'Cada remisión registra método de pago.')}
+            ${featureCard('Recetas persistentes', 'Las recetas guardadas permanecen al cambiar de menú.')}
+            ${featureCard('Alta rápida y remisión desde expediente', 'Desde la ficha de la mascota puedes registrar y cobrar servicios del catálogo.')}
           </div>
         </div>
         <div class="card p-5">
@@ -191,284 +177,168 @@
             <div class="flex justify-between"><span class="text-slate-500">Total facturado</span><span class="font-semibold">${money(billed)}</span></div>
             <div class="flex justify-between"><span class="text-slate-500">Total cobrado</span><span class="font-semibold">${money(paid)}</span></div>
             <div class="flex justify-between"><span class="text-slate-500">Saldo pendiente</span><span class="font-semibold text-amber-600">${money(pending)}</span></div>
-            <div class="flex justify-between"><span class="text-slate-500">Utilidad potencial inventario</span><span class="font-semibold text-emerald-600">${money(margin)}</span></div>
+            <div class="flex justify-between"><span class="text-slate-500">Utilidad potencial inventario</span><span class="font-semibold text-emerald-600">${money(potentialMargin)}</span></div>
           </div>
         </div>
-      </div>
-    `;
-  }
-
-  function statCard(title, value, hint) {
-    return `
-      <div class="card p-5">
-        <p class="text-sm text-slate-500">${esc(title)}</p>
-        <p class="text-2xl font-semibold mt-1">${esc(value)}</p>
-        <p class="text-xs text-slate-400 mt-2">${esc(hint)}</p>
-      </div>
-    `;
-  }
-
-  function featureCard(title, text) {
-    return `
-      <div class="p-4 rounded-2xl bg-slate-50">
-        <p class="font-medium text-slate-900 mb-1">${esc(title)}</p>
-        <p>${esc(text)}</p>
-      </div>
-    `;
+      </div>`;
   }
 
   function renderInventory() {
-    const totalValue = state.inventory.reduce((a,b) => a + (Number(b.cost||0) * Number(b.stock||0)), 0);
+    const totalValue = state.inventory.reduce((a,b) => a + (Number(b.cost || 0) * Number(b.stock || 0)), 0);
     app.innerHTML = `
       ${sectionTitle('Inventario', 'Todos los campos son editables y mantienen cálculo de utilidad.')}
       <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <div class="card p-5 xl:col-span-2 overflow-auto">
-          <div class="mb-4 flex items-center justify-between">
-            <h3 class="text-lg font-semibold">Listado editable</h3>
-            <span class="text-sm text-slate-500">Valor en costo: ${money(totalValue)}</span>
-          </div>
+          <div class="mb-4 flex items-center justify-between"><h3 class="text-lg font-semibold">Listado editable</h3><span class="text-sm text-slate-500">Valor en costo: ${money(totalValue)}</span></div>
           <table class="w-full text-sm min-w-[920px]">
-            <thead>
-              <tr class="text-left text-slate-500 border-b border-slate-200">
-                <th class="pb-3">Producto</th>
-                <th class="pb-3">Categoría</th>
-                <th class="pb-3">Stock</th>
-                <th class="pb-3">Unidad</th>
-                <th class="pb-3">Costo</th>
-                <th class="pb-3">Venta</th>
-                <th class="pb-3">Utilidad</th>
-                <th class="pb-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              ${state.inventory.map(item => `
-                <tr class="border-b border-slate-100">
-                  <td class="py-3 pr-2"><input class="small-input inv-field" data-id="${item.id}" data-field="name" value="${esc(item.name)}"></td>
-                  <td class="py-3 pr-2"><input class="small-input inv-field" data-id="${item.id}" data-field="category" value="${esc(item.category)}"></td>
-                  <td class="py-3 pr-2"><input type="number" class="small-input inv-field" data-id="${item.id}" data-field="stock" value="${item.stock}"></td>
-                  <td class="py-3 pr-2"><input class="small-input inv-field" data-id="${item.id}" data-field="unit" value="${esc(item.unit)}"></td>
-                  <td class="py-3 pr-2"><input type="number" class="small-input inv-field" data-id="${item.id}" data-field="cost" value="${item.cost}"></td>
-                  <td class="py-3 pr-2"><input type="number" class="small-input inv-field" data-id="${item.id}" data-field="price" value="${item.price}"></td>
-                  <td class="py-3 font-medium text-emerald-600">${money(Number(item.price||0) - Number(item.cost||0))}</td>
-                  <td class="py-3 text-right"><button class="remove-inventory p-2 rounded-xl hover:bg-slate-100" data-id="${item.id}">🗑️</button></td>
-                </tr>
-              `).join('')}
-            </tbody>
+            <thead><tr class="text-left text-slate-500 border-b border-slate-200"><th class="pb-3">Producto</th><th class="pb-3">Categoría</th><th class="pb-3">Stock</th><th class="pb-3">Unidad</th><th class="pb-3">Costo</th><th class="pb-3">Venta</th><th class="pb-3">Utilidad</th><th class="pb-3"></th></tr></thead>
+            <tbody>${state.inventory.map(item => `
+              <tr class="border-b border-slate-100">
+                <td class="py-3 pr-2"><input class="small-input inv-field" data-id="${item.id}" data-field="name" value="${esc(item.name)}"></td>
+                <td class="py-3 pr-2"><input class="small-input inv-field" data-id="${item.id}" data-field="category" value="${esc(item.category)}"></td>
+                <td class="py-3 pr-2"><input type="number" class="small-input inv-field" data-id="${item.id}" data-field="stock" value="${item.stock}"></td>
+                <td class="py-3 pr-2"><input class="small-input inv-field" data-id="${item.id}" data-field="unit" value="${esc(item.unit)}"></td>
+                <td class="py-3 pr-2"><input type="number" class="small-input inv-field" data-id="${item.id}" data-field="cost" value="${item.cost}"></td>
+                <td class="py-3 pr-2"><input type="number" class="small-input inv-field" data-id="${item.id}" data-field="price" value="${item.price}"></td>
+                <td class="py-3 font-medium text-emerald-600">${money(Number(item.price || 0) - Number(item.cost || 0))}</td>
+                <td class="py-3 text-right"><button class="remove-inventory p-2 rounded-xl hover:bg-slate-100" data-id="${item.id}">🗑️</button></td>
+              </tr>`).join('')}</tbody>
           </table>
         </div>
         <div class="card p-5">
           <h3 class="text-lg font-semibold mb-4">Agregar insumo</h3>
           <div class="space-y-3">
-            <input id="inventory-name" class="input" placeholder="Nombre" value="${esc(state.inventoryForm.name)}">
-            <input id="inventory-category" class="input" placeholder="Categoría" value="${esc(state.inventoryForm.category)}">
+            <input id="inv-name" class="input" placeholder="Nombre" value="${esc(state.inventoryForm.name)}">
+            <input id="inv-category" class="input" placeholder="Categoría" value="${esc(state.inventoryForm.category)}">
             <div class="grid grid-cols-2 gap-3">
-              <input id="inventory-stock" class="input" type="number" placeholder="Stock" value="${esc(state.inventoryForm.stock)}">
-              <input id="inventory-unit" class="input" placeholder="Unidad" value="${esc(state.inventoryForm.unit)}">
+              <input id="inv-stock" class="input" type="number" placeholder="Stock" value="${esc(state.inventoryForm.stock)}">
+              <input id="inv-unit" class="input" placeholder="Unidad" value="${esc(state.inventoryForm.unit)}">
             </div>
             <div class="grid grid-cols-2 gap-3">
-              <input id="inventory-cost" class="input" type="number" placeholder="Costo" value="${esc(state.inventoryForm.cost)}">
-              <input id="inventory-price" class="input" type="number" placeholder="Precio venta" value="${esc(state.inventoryForm.price)}">
+              <input id="inv-cost" class="input" type="number" placeholder="Costo" value="${esc(state.inventoryForm.cost)}">
+              <input id="inv-price" class="input" type="number" placeholder="Precio venta" value="${esc(state.inventoryForm.price)}">
             </div>
             <button id="btn-add-inventory" class="w-full rounded-2xl bg-slate-900 text-white py-3 font-medium">Guardar insumo</button>
           </div>
         </div>
-      </div>
-    `;
-
-    document.querySelectorAll('.inv-field').forEach(el => {
-      el.oninput = () => {
-        const id = Number(el.dataset.id);
-        const field = el.dataset.field;
-        state.inventory = state.inventory.map(item => item.id === id ? {
-          ...item,
-          [field]: ['stock','cost','price'].includes(field) ? Number(el.value || 0) : el.value
-        } : item);
-        render();
-      };
+      </div>`;
+    document.querySelectorAll('.inv-field').forEach(el => el.oninput = () => {
+      const id = Number(el.dataset.id), field = el.dataset.field;
+      state.inventory = state.inventory.map(item => item.id === id ? { ...item, [field]: ['stock','cost','price'].includes(field) ? Number(el.value || 0) : el.value } : item);
+      render();
     });
-
-    document.querySelectorAll('.remove-inventory').forEach(btn => {
-      btn.onclick = () => {
-        const id = Number(btn.dataset.id);
-        state.inventory = state.inventory.filter(i => i.id !== id);
-        render();
-      };
+    document.querySelectorAll('.remove-inventory').forEach(btn => btn.onclick = () => {
+      state.inventory = state.inventory.filter(i => i.id !== Number(btn.dataset.id)); render();
     });
-
-    ['name','category','stock','unit','cost','price'].forEach(field => {
-      const el = document.getElementById('inventory-' + field);
-      el.oninput = () => { state.inventoryForm[field] = el.value; };
-    });
-
+    [['name','inv-name'],['category','inv-category'],['stock','inv-stock'],['unit','inv-unit'],['cost','inv-cost'],['price','inv-price']].forEach(([k,id]) => document.getElementById(id).oninput = (e) => { state.inventoryForm[k] = e.target.value; });
     document.getElementById('btn-add-inventory').onclick = () => {
       const f = state.inventoryForm;
       if (!f.name || !f.category) return;
-      state.inventory.unshift({
-        id: Date.now(),
-        name: f.name,
-        category: f.category,
-        stock: Number(f.stock || 0),
-        unit: f.unit || 'pieza',
-        cost: Number(f.cost || 0),
-        price: Number(f.price || 0)
-      });
+      state.inventory.unshift({ id: Date.now(), name:f.name, category:f.category, stock:Number(f.stock || 0), unit:f.unit || 'pieza', cost:Number(f.cost || 0), price:Number(f.price || 0) });
       state.inventoryForm = { name:'', category:'', stock:'', unit:'', cost:'', price:'' };
       render();
     };
   }
 
-  function renderServices() {
+  function renderCatalog() {
     app.innerHTML = `
-      ${sectionTitle('Catálogo de servicios', 'Precios cargados y edición directa sobre tabla.')}
+      ${sectionTitle('Catálogo', 'Servicios y estudios con precios editables.')}
       <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <div class="card p-5 xl:col-span-2 overflow-auto">
-          <h3 class="text-lg font-semibold mb-4">Servicios editables</h3>
+          <h3 class="text-lg font-semibold mb-4">Catálogo editable</h3>
           <table class="w-full text-sm min-w-[900px]">
-            <thead>
-              <tr class="text-left text-slate-500 border-b border-slate-200">
-                <th class="pb-3">Nombre</th>
-                <th class="pb-3">Categoría</th>
-                <th class="pb-3">Precio</th>
-                <th class="pb-3">Duración</th>
-                <th class="pb-3">Notas</th>
-                <th class="pb-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              ${state.services.map(s => `
-                <tr class="border-b border-slate-100">
-                  <td class="py-3 pr-2"><input class="small-input service-field" data-id="${s.id}" data-field="name" value="${esc(s.name)}"></td>
-                  <td class="py-3 pr-2"><input class="small-input service-field" data-id="${s.id}" data-field="category" value="${esc(s.category)}"></td>
-                  <td class="py-3 pr-2"><input type="number" class="small-input service-field" data-id="${s.id}" data-field="basePrice" value="${s.basePrice}"></td>
-                  <td class="py-3 pr-2"><input class="small-input service-field" data-id="${s.id}" data-field="duration" value="${esc(s.duration)}"></td>
-                  <td class="py-3 pr-2"><input class="small-input service-field" data-id="${s.id}" data-field="notes" value="${esc(s.notes)}"></td>
-                  <td class="py-3 text-right"><button class="remove-service p-2 rounded-xl hover:bg-slate-100" data-id="${s.id}">🗑️</button></td>
-                </tr>
-              `).join('')}
-            </tbody>
+            <thead><tr class="text-left text-slate-500 border-b border-slate-200"><th class="pb-3">Nombre</th><th class="pb-3">Categoría</th><th class="pb-3">Precio</th><th class="pb-3">Duración</th><th class="pb-3">Notas</th><th class="pb-3"></th></tr></thead>
+            <tbody>${state.catalog.map(item => `
+              <tr class="border-b border-slate-100">
+                <td class="py-3 pr-2"><input class="small-input cat-field" data-id="${item.id}" data-field="name" value="${esc(item.name)}"></td>
+                <td class="py-3 pr-2"><input class="small-input cat-field" data-id="${item.id}" data-field="category" value="${esc(item.category)}"></td>
+                <td class="py-3 pr-2"><input type="number" class="small-input cat-field" data-id="${item.id}" data-field="basePrice" value="${item.basePrice}"></td>
+                <td class="py-3 pr-2"><input class="small-input cat-field" data-id="${item.id}" data-field="duration" value="${esc(item.duration)}"></td>
+                <td class="py-3 pr-2"><input class="small-input cat-field" data-id="${item.id}" data-field="notes" value="${esc(item.notes)}"></td>
+                <td class="py-3 text-right"><button class="remove-cat p-2 rounded-xl hover:bg-slate-100" data-id="${item.id}">🗑️</button></td>
+              </tr>`).join('')}</tbody>
           </table>
         </div>
-
         <div class="card p-5">
-          <h3 class="text-lg font-semibold mb-4">Nuevo servicio</h3>
+          <h3 class="text-lg font-semibold mb-4">Nuevo ítem de catálogo</h3>
           <div class="space-y-3">
-            <input id="service-name" class="input" placeholder="Nombre del servicio" value="${esc(state.serviceForm.name)}">
-            <input id="service-category" class="input" placeholder="Categoría" value="${esc(state.serviceForm.category)}">
+            <input id="cat-name" class="input" placeholder="Nombre del servicio" value="${esc(state.catalogForm.name)}">
+            <input id="cat-category" class="input" placeholder="Categoría" value="${esc(state.catalogForm.category)}">
             <div class="grid grid-cols-2 gap-3">
-              <input id="service-basePrice" class="input" type="number" placeholder="Precio base" value="${esc(state.serviceForm.basePrice)}">
-              <input id="service-duration" class="input" placeholder="Duración" value="${esc(state.serviceForm.duration)}">
+              <input id="cat-basePrice" class="input" type="number" placeholder="Precio base" value="${esc(state.catalogForm.basePrice)}">
+              <input id="cat-duration" class="input" placeholder="Duración" value="${esc(state.catalogForm.duration)}">
             </div>
-            <textarea id="service-notes" class="input min-h-[110px]" placeholder="Notas">${esc(state.serviceForm.notes)}</textarea>
-            <button id="btn-add-service" class="w-full rounded-2xl bg-slate-900 text-white py-3 font-medium">Guardar servicio</button>
+            <textarea id="cat-notes" class="input min-h-[110px]" placeholder="Notas">${esc(state.catalogForm.notes)}</textarea>
+            <button id="btn-add-cat" class="w-full rounded-2xl bg-slate-900 text-white py-3 font-medium">Guardar ítem</button>
           </div>
         </div>
-      </div>
-    `;
-
-    document.querySelectorAll('.service-field').forEach(el => {
-      el.oninput = () => {
-        const id = Number(el.dataset.id);
-        const field = el.dataset.field;
-        state.services = state.services.map(s => s.id === id ? {
-          ...s,
-          [field]: field === 'basePrice' ? Number(el.value || 0) : el.value
-        } : s);
-        render();
-      };
+      </div>`;
+    document.querySelectorAll('.cat-field').forEach(el => el.oninput = () => {
+      const id = Number(el.dataset.id), field = el.dataset.field;
+      state.catalog = state.catalog.map(item => item.id === id ? { ...item, [field]: field === 'basePrice' ? Number(el.value || 0) : el.value } : item);
+      render();
     });
-
-    document.querySelectorAll('.remove-service').forEach(btn => {
-      btn.onclick = () => {
-        const id = Number(btn.dataset.id);
-        state.services = state.services.filter(s => s.id !== id);
-        render();
-      };
+    document.querySelectorAll('.remove-cat').forEach(btn => btn.onclick = () => {
+      state.catalog = state.catalog.filter(c => c.id !== Number(btn.dataset.id)); render();
     });
-
-    ['name','category','basePrice','duration','notes'].forEach(field => {
-      const el = document.getElementById('service-' + field);
-      el.oninput = () => { state.serviceForm[field] = el.value; };
-    });
-
-    document.getElementById('btn-add-service').onclick = () => {
-      const f = state.serviceForm;
+    [['name','cat-name'],['category','cat-category'],['basePrice','cat-basePrice'],['duration','cat-duration'],['notes','cat-notes']].forEach(([k,id]) => document.getElementById(id).oninput = (e) => { state.catalogForm[k] = e.target.value; });
+    document.getElementById('btn-add-cat').onclick = () => {
+      const f = state.catalogForm;
       if (!f.name) return;
-      state.services.unshift({
-        id: Date.now(),
-        name: f.name,
-        category: f.category || 'General',
-        basePrice: Number(f.basePrice || 0),
-        duration: f.duration || '15 min',
-        notes: f.notes || ''
-      });
-      state.serviceForm = { name:'', category:'', basePrice:'', duration:'', notes:'' };
+      state.catalog.unshift({ id: Date.now(), name:f.name, category:f.category || 'General', basePrice:Number(f.basePrice || 0), duration:f.duration || '15 min', notes:f.notes || '' });
+      state.catalogForm = { name:'', category:'', basePrice:'', duration:'', notes:'' };
       render();
     };
   }
 
   function patientFormHtml(prefix, form) {
-    return `
-      <input id="${prefix}-petName" class="input" placeholder="Nombre de mascota" value="${esc(form.petName)}">
-      <div class="grid grid-cols-2 gap-3">
-        <input id="${prefix}-species" class="input" placeholder="Especie" value="${esc(form.species)}">
-        <input id="${prefix}-breed" class="input" placeholder="Raza" value="${esc(form.breed)}">
-      </div>
-      <div class="grid grid-cols-2 gap-3">
-        <input id="${prefix}-age" class="input" placeholder="Edad" value="${esc(form.age)}">
-        <input id="${prefix}-birthDate" type="date" class="input" value="${esc(form.birthDate)}">
-      </div>
-      <input id="${prefix}-sex" class="input" placeholder="Sexo" value="${esc(form.sex)}">
+    return `<input id="${prefix}-petName" class="input" placeholder="Nombre de mascota" value="${esc(form.petName)}">
+      <div class="grid grid-cols-2 gap-3"><input id="${prefix}-species" class="input" placeholder="Especie" value="${esc(form.species)}"><input id="${prefix}-breed" class="input" placeholder="Raza" value="${esc(form.breed)}"></div>
+      <div class="grid grid-cols-2 gap-3"><input id="${prefix}-age" class="input" placeholder="Edad" value="${esc(form.age)}"><input id="${prefix}-birthDate" type="date" class="input" value="${esc(form.birthDate)}"></div>
+      <input id="${prefix}-sex" class="input" placeholder="Sexo" value="${esc(form.sex)}">\n      <select id="${prefix}-doctor" class="input">${DOCTORS.map(d => `<option ${form.doctor === d ? 'selected' : ''}>${esc(d)}</option>`).join('')}</select>
       <input id="${prefix}-ownerName" class="input" placeholder="Nombre del propietario" value="${esc(form.ownerName)}">
       <input id="${prefix}-ownerAddress" class="input" placeholder="Dirección" value="${esc(form.ownerAddress)}">
       <input id="${prefix}-email" class="input" placeholder="Correo" value="${esc(form.email)}">
       <input id="${prefix}-phone" class="input" placeholder="Celular" value="${esc(form.phone)}">
-      <textarea id="${prefix}-notes" class="input min-h-[80px]" placeholder="Notas">${esc(form.notes)}</textarea>
-    `;
+      <textarea id="${prefix}-notes" class="input min-h-[80px]" placeholder="Notas">${esc(form.notes)}</textarea>`;
   }
 
-  function bindPatientForm(prefix, targetObj) {
-    ['petName','species','breed','age','birthDate','sex','ownerName','ownerAddress','email','phone','notes'].forEach(field => {
-      const el = document.getElementById(prefix + '-' + field);
-      el.oninput = () => { targetObj[field] = el.value; };
+  function bindPatientForm(prefix, target) {
+    ['petName','species','breed','age','birthDate','sex','doctor','ownerName','ownerAddress','email','phone','notes'].forEach(field => {
+      document.getElementById(prefix + '-' + field).oninput = (e) => { target[field] = e.target.value; };
     });
+  }
+
+  function servicesByCategory(category) {
+    return state.catalog.filter(s => s.category === category);
   }
 
   function renderPatients() {
     const filtered = state.patients.filter(p => (p.petName + ' ' + p.ownerName + ' ' + p.species).toLowerCase().includes(state.searchPatient.toLowerCase()));
     const patient = selectedPatient();
     const patientInvoices = patient ? state.invoices.filter(inv => inv.patientId === patient.id) : [];
+    let availableServices = state.historyForm.type === 'Anotaciones' ? [] : servicesByCategory(state.historyForm.type);
+    if (state.historyForm.type !== 'Anotaciones' && availableServices.length && !availableServices.some(s => String(s.id) === String(state.historyForm.serviceId))) {
+      state.historyForm.serviceId = String(availableServices[0].id);
+    }
+    if (state.historyForm.type === 'Anotaciones') state.historyForm.serviceId = '';
 
     app.innerHTML = `
-      ${sectionTitle('Expedientes', 'Incluye propietario, documentos, historial y servicios realizados.',
-        `<div class="relative w-full md:w-80"><input id="patient-search" class="input" placeholder="Buscar por mascota, especie o dueño" value="${esc(state.searchPatient)}"></div>`)}
+      ${sectionTitle('Expedientes', 'Incluye propietario, documentos, historial y remisión directa desde el expediente.',
+      `<div class="relative w-full md:w-80"><input id="patient-search" class="input" placeholder="Buscar por mascota, especie o dueño" value="${esc(state.searchPatient)}"></div>`)}
       <div class="grid grid-cols-1 xl:grid-cols-12 gap-4">
-        <div class="xl:col-span-4 space-y-4">
-          ${filtered.map(p => `
-            <div class="card p-5 ${patient && patient.id === p.id ? 'ring-2 ring-slate-900' : ''}">
-              <button class="w-full text-left patient-selector" data-id="${p.id}">
-                <div class="flex items-center gap-3">
-                  <div class="p-3 rounded-2xl bg-slate-100">🐾</div>
-                  <div>
-                    <h3 class="text-lg font-semibold text-slate-900">${esc(p.petName)}</h3>
-                    <p class="text-sm text-slate-500">${esc(p.species)} · ${esc(p.breed || 'Raza no especificada')}</p>
-                  </div>
-                </div>
-                <p class="text-sm text-slate-600 mt-4">${esc(p.ownerName)}</p>
-                <div class="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
-                  <span>Docs: ${(p.documents || []).length}</span>
-                  <span>Historial: ${(p.history || []).length}</span>
-                </div>
-              </button>
-            </div>
-          `).join('')}
-        </div>
+        <div class="xl:col-span-4 space-y-4">${filtered.map(p => `
+          <div class="card p-5 ${patient && patient.id === p.id ? 'ring-2 ring-slate-900' : ''}">
+            <button class="w-full text-left patient-selector" data-id="${p.id}">
+              <div class="flex items-center gap-3"><div class="p-3 rounded-2xl bg-slate-100">🐾</div><div><h3 class="text-lg font-semibold text-slate-900">${esc(p.petName)}</h3><p class="text-sm text-slate-500">${esc(p.species)} · ${esc(p.breed || 'Raza no especificada')}</p></div></div>
+              <p class="text-sm text-slate-600 mt-4">${esc(p.ownerName)}</p>
+              <div class="mt-3 pt-3 border-t border-slate-200 flex justify-between text-xs text-slate-500"><span>Docs: ${(p.documents||[]).length}</span><span>Historial: ${(p.history||[]).length}</span></div>
+            </button>
+          </div>`).join('')}</div>
 
         <div class="card p-5 xl:col-span-4">
           <h3 class="text-lg font-semibold mb-4">Nuevo expediente</h3>
-          <div class="space-y-3">
-            ${patientFormHtml('patientForm', state.patientForm)}
-            <button id="btn-save-patient" class="w-full rounded-2xl bg-slate-900 text-white py-3 font-medium">Guardar expediente</button>
-          </div>
+          <div class="space-y-3">${patientFormHtml('patientForm', state.patientForm)}<button id="btn-save-patient" class="w-full rounded-2xl bg-slate-900 text-white py-3 font-medium">Guardar expediente</button></div>
         </div>
 
         <div class="xl:col-span-4 space-y-4">
@@ -479,150 +349,111 @@
                 <p class="text-lg font-semibold text-slate-900">${esc(patient.petName)}</p>
                 <p class="text-sm text-slate-500 mt-1">${esc(patient.species)} · ${esc(patient.breed || 'Raza no especificada')} · ${esc(patient.age || 'Edad no registrada')}</p>
                 <div class="mt-3 space-y-1 text-sm text-slate-600">
-                  <p><span class="font-medium">Propietario:</span> ${esc(patient.ownerName)}</p>
+                  <p><span class="font-medium">Propietario:</span> ${esc(patient.ownerName)}</p><p><span class="font-medium">Médico:</span> ${esc(patient.doctor || 'Sin asignar')}</p>
                   <p><span class="font-medium">Dirección:</span> ${esc(patient.ownerAddress || 'Sin dirección')}</p>
                   <p><span class="font-medium">Celular:</span> ${esc(patient.phone || 'Sin teléfono')}</p>
                   <p><span class="font-medium">Correo:</span> ${esc(patient.email || 'Sin correo')}</p>
                 </div>
               </div>
-              <div class="mt-4">
-                <label class="block w-full rounded-2xl border-2 border-dashed border-slate-300 p-4 text-center cursor-pointer hover:bg-slate-50 transition">
-                  <input id="patient-files" type="file" multiple class="hidden">
-                  <p class="font-medium text-slate-900">Cargar documentos</p>
-                  <p class="text-xs text-slate-500 mt-1">Cualquier formato</p>
-                </label>
-              </div>
+              <div class="mt-4"><label class="block w-full rounded-2xl border-2 border-dashed border-slate-300 p-4 text-center cursor-pointer hover:bg-slate-50 transition"><input id="patient-files" type="file" multiple class="hidden"><p class="font-medium text-slate-900">Cargar documentos</p><p class="text-xs text-slate-500 mt-1">Cualquier formato</p></label></div>
               <div class="mt-4 space-y-3 max-h-52 overflow-auto pr-1">
                 ${(patient.documents || []).length === 0 ? '<p class="text-sm text-slate-500">Sin documentos cargados.</p>' : ''}
-                ${(patient.documents || []).map(doc => `
-                  <div class="rounded-2xl border border-slate-200 p-3">
-                    <div class="flex items-start justify-between gap-3">
-                      <div class="flex gap-3">
-                        <div class="min-w-[44px] h-11 rounded-2xl bg-slate-100 flex items-center justify-center text-xs font-semibold text-slate-700">${iconByType(doc.type)}</div>
-                        <div>
-                          <p class="text-sm font-medium text-slate-900 break-all">${esc(doc.name)}</p>
-                          <p class="text-xs text-slate-500 mt-1">${esc(doc.size)} · ${esc(doc.uploadedAt)}</p>
-                        </div>
-                      </div>
-                      <button class="remove-doc p-2 rounded-xl hover:bg-slate-100" data-id="${doc.id}">🗑️</button>
-                    </div>
-                  </div>
-                `).join('')}
-              </div>
-            `}
+                ${(patient.documents || []).map(doc => `<div class="rounded-2xl border border-slate-200 p-3"><div class="flex items-start justify-between gap-3"><div class="flex gap-3"><div class="min-w-[44px] h-11 rounded-2xl bg-slate-100 flex items-center justify-center text-xs font-semibold text-slate-700">${iconByType(doc.type)}</div><div><p class="text-sm font-medium text-slate-900 break-all">${esc(doc.name)}</p><p class="text-xs text-slate-500 mt-1">${esc(doc.size)} · ${esc(doc.uploadedAt)}</p></div></div><button class="remove-doc p-2 rounded-xl hover:bg-slate-100" data-id="${doc.id}">🗑️</button></div></div>`).join('')}
+              </div>`}
           </div>
 
           <div class="card p-5">
-            <h3 class="text-lg font-semibold mb-4">Agregar al historial</h3>
+            <h3 class="text-lg font-semibold mb-4">Registrar historial</h3>
             ${!patient ? '<p class="text-sm text-slate-500">Selecciona una mascota.</p>' : `
               <div class="space-y-3">
                 <input id="history-date" type="date" class="input" value="${esc(state.historyForm.date)}">
-                <select id="history-type" class="input">
-                  ${['Consulta','Servicio','Procedimiento','Seguimiento'].map(t => `<option ${state.historyForm.type === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}
+                <select id="history-type" class="input">${HISTORY_TYPES.map(t => `<option ${state.historyForm.type === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>
+                <select id="history-service" class="input" ${state.historyForm.type === 'Anotaciones' ? 'disabled' : ''}>
+                  ${state.historyForm.type === 'Anotaciones' ? '<option value="">No aplica</option>' :
+                    availableServices.length ? availableServices.map(s => `<option value="${s.id}" ${String(state.historyForm.serviceId) === String(s.id) ? 'selected' : ''}>${esc(s.name)} · ${money(s.basePrice)}</option>`).join('') : '<option value="">Sin servicios en esta categoría</option>'}
                 </select>
-                <input id="history-title" class="input" placeholder="Título" value="${esc(state.historyForm.title)}">
-                <textarea id="history-notes" class="input min-h-[90px]" placeholder="Notas">${esc(state.historyForm.notes)}</textarea>
-                <button id="btn-save-history" class="w-full rounded-2xl bg-slate-900 text-white py-3 font-medium">Guardar en historial</button>
-              </div>
-            `}
+                <select id="history-payment" class="input" ${state.historyForm.type === 'Anotaciones' ? 'disabled' : ''}>${PAYMENT_METHODS.map(m => `<option ${state.paymentMethod === m ? 'selected' : ''}>${esc(m)}</option>`).join('')}</select>
+                <textarea id="history-notes" class="input min-h-[90px]" placeholder="Notas / anotaciones">${esc(state.historyForm.notes)}</textarea>
+                <button id="btn-save-history-only" class="w-full rounded-2xl bg-slate-900 text-white py-3 font-medium">Guardar historial</button>
+              </div>`}
           </div>
         </div>
       </div>
 
-      ${patient ? `
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 mt-4">
-          <div class="card p-5">
-            <h3 class="text-lg font-semibold mb-4">Historial de la mascota</h3>
-            <div class="space-y-3 max-h-[420px] overflow-auto pr-1">
-              ${(patient.history || []).length === 0 ? '<p class="text-sm text-slate-500">Aún no hay historial registrado.</p>' : ''}
-              ${(patient.history || []).map(entry => `
-                <div class="rounded-2xl border border-slate-200 p-4">
-                  <div>
-                    <p class="font-medium text-slate-900">${esc(entry.title)}</p>
-                    <p class="text-xs text-slate-500 mt-1">${esc(entry.type)} · ${esc(entry.date)}</p>
-                  </div>
-                  <p class="text-sm text-slate-600 mt-3">${esc(entry.notes)}</p>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-
-          <div class="card p-5">
-            <h3 class="text-lg font-semibold mb-4">Servicios realizados</h3>
-            <div class="space-y-3 max-h-[420px] overflow-auto pr-1">
-              ${patientInvoices.length === 0 ? '<p class="text-sm text-slate-500">Aún no hay remisiones o servicios ligados a esta mascota.</p>' : ''}
-              ${patientInvoices.map(inv => `
-                <div class="rounded-2xl border border-slate-200 p-4">
-                  <div class="flex items-start justify-between gap-3">
-                    <div>
-                      <p class="font-medium text-slate-900">Remisión #${inv.id}</p>
-                      <p class="text-xs text-slate-500 mt-1">${esc(inv.date)} · ${esc(inv.paymentMethod)}</p>
-                    </div>
-                    <span class="px-3 py-1 rounded-2xl text-xs font-medium ${inv.status === 'Pagado' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}">${esc(inv.status)}</span>
-                  </div>
-                  <div class="mt-3 space-y-2 text-sm text-slate-600">
-                    ${inv.items.map(it => `<div class="flex items-center justify-between gap-3"><span>${esc(it.name)} x${it.qty}</span><span>${money(it.total)}</span></div>`).join('')}
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        </div>
-      ` : ''}
-    `;
-
-    document.getElementById('patient-search').oninput = (e) => {
-      state.searchPatient = e.target.value;
-      render();
-    };
-
-    document.querySelectorAll('.patient-selector').forEach(btn => {
-      btn.onclick = () => {
-        state.selectedPatientId = Number(btn.dataset.id);
-        render();
-      };
-    });
-
+      ${patient ? `<div class="grid grid-cols-1 xl:grid-cols-2 gap-4 mt-4">
+        <div class="card p-5"><h3 class="text-lg font-semibold mb-4">Historial de la mascota</h3><div class="space-y-3 max-h-[420px] overflow-auto pr-1">${(patient.history || []).length === 0 ? '<p class="text-sm text-slate-500">Aún no hay historial registrado.</p>' : ''}${(patient.history || []).map(entry => `<div class="rounded-2xl border border-slate-200 p-4"><div><p class="font-medium text-slate-900">${esc(entry.title)}</p><p class="text-xs text-slate-500 mt-1">${esc(entry.type)} · ${esc(entry.date)}</p></div><p class="text-sm text-slate-600 mt-3">${esc(entry.notes)}</p></div>`).join('')}</div></div>
+        <div class="card p-5"><h3 class="text-lg font-semibold mb-4">Servicios realizados</h3><div class="space-y-3 max-h-[420px] overflow-auto pr-1">${patientInvoices.length === 0 ? '<p class="text-sm text-slate-500">Aún no hay remisiones o servicios ligados a esta mascota.</p>' : ''}${patientInvoices.map(inv => `<div class="rounded-2xl border border-slate-200 p-4"><div class="flex items-start justify-between gap-3"><div><p class="font-medium text-slate-900">Remisión #${inv.id}</p><p class="text-xs text-slate-500 mt-1">${esc(inv.date)} · ${esc(inv.paymentMethod)}</p></div><span class="px-3 py-1 rounded-2xl text-xs font-medium ${inv.status === 'Pagado' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}">${esc(inv.status)}</span></div><div class="mt-3 space-y-2 text-sm text-slate-600">${inv.items.map(it => `<div class="flex justify-between gap-3"><span>${esc(it.name)} x${it.qty}</span><span>${money(it.total)}</span></div>`).join('')}</div></div>`).join('')}</div></div>
+      </div>` : ''}`;
+    document.getElementById('patient-search').oninput = (e) => { state.searchPatient = e.target.value; render(); };
+    document.querySelectorAll('.patient-selector').forEach(btn => btn.onclick = () => { state.selectedPatientId = Number(btn.dataset.id); render(); });
     bindPatientForm('patientForm', state.patientForm);
-
     document.getElementById('btn-save-patient').onclick = () => {
       const f = state.patientForm;
       if (!f.petName || !f.species || !f.ownerName) return;
       const newPatient = { id: Date.now(), ...f, documents: [], history: [] };
       state.patients.unshift(newPatient);
       state.selectedPatientId = newPatient.id;
-      state.patientForm = { petName:'', species:'', breed:'', age:'', birthDate:'', sex:'', ownerName:'', ownerAddress:'', email:'', phone:'', notes:'' };
+      state.selectedInvoicePatientId = newPatient.id;
+      state.selectedPrescriptionPatientId = newPatient.id;
+      state.patientForm = { petName:'', species:'', breed:'', age:'', birthDate:'', sex:'', doctor: DOCTORS[0], ownerName:'', ownerAddress:'', email:'', phone:'', notes:'' };
       render();
     };
-
     if (patient) {
       document.getElementById('patient-files').onchange = (e) => {
-        const files = Array.from(e.target.files || []);
-        if (!files.length) return;
-        files.forEach((file, idx) => {
+        Array.from(e.target.files || []).forEach((file, idx) => {
           const size = file.size ? ((file.size / 1024 / 1024) >= 1 ? (file.size / 1024 / 1024).toFixed(1) + ' MB' : Math.ceil(file.size / 1024) + ' KB') : 'Sin tamaño';
           patient.documents.push({ id: Date.now() + idx, name:file.name, type:file.type || 'application/octet-stream', size, uploadedAt:new Date().toISOString().slice(0,10) });
         });
         render();
       };
-
-      document.querySelectorAll('.remove-doc').forEach(btn => {
-        btn.onclick = () => {
-          const docId = Number(btn.dataset.id);
-          patient.documents = patient.documents.filter(d => d.id !== docId);
-          render();
-        };
+      document.querySelectorAll('.remove-doc').forEach(btn => btn.onclick = () => {
+        patient.documents = patient.documents.filter(d => d.id !== Number(btn.dataset.id)); render();
       });
-
       document.getElementById('history-date').oninput = (e) => { state.historyForm.date = e.target.value; };
-      document.getElementById('history-type').onchange = (e) => { state.historyForm.type = e.target.value; };
-      document.getElementById('history-title').oninput = (e) => { state.historyForm.title = e.target.value; };
+      document.getElementById('history-type').onchange = (e) => { state.historyForm.type = e.target.value; state.historyForm.serviceId = ''; render(); };
+      const serviceSelect = document.getElementById('history-service');
+      if (serviceSelect) serviceSelect.onchange = (e) => { state.historyForm.serviceId = e.target.value; };
+      const paymentSelect = document.getElementById('history-payment');
+      if (paymentSelect) paymentSelect.onchange = (e) => { state.paymentMethod = e.target.value; };
       document.getElementById('history-notes').oninput = (e) => { state.historyForm.notes = e.target.value; };
 
-      document.getElementById('btn-save-history').onclick = () => {
-        if (!state.historyForm.title) return;
-        patient.history.unshift({ id: Date.now(), ...state.historyForm });
-        state.historyForm = { date:new Date().toISOString().slice(0,10), type:'Consulta', title:'', notes:'' };
+      document.getElementById('btn-save-history-only').onclick = () => {
+        if (state.historyForm.type === 'Anotaciones') {
+          if (!state.historyForm.notes) return;
+          patient.history.unshift({
+            id: Date.now(),
+            date: state.historyForm.date,
+            type: 'Anotaciones',
+            title: 'Anotación',
+            notes: state.historyForm.notes
+          });
+        } else {
+          const service = state.catalog.find(s => String(s.id) === String(state.historyForm.serviceId));
+          if (!service) return;
+          const subtotal = Number(service.basePrice || 0);
+          const invoice = {
+            id: Math.floor(1000 + Math.random() * 9000),
+            date: state.historyForm.date || new Date().toISOString().slice(0,10),
+            patientId: patient.id,
+            patientName: patient.petName,
+            ownerName: patient.ownerName,
+            items: [{ type:'service', name: service.name, qty:1, unitPrice: subtotal, total: subtotal }],
+            paymentMethod: state.paymentMethod,
+            subtotal,
+            status: 'Pendiente',
+            amountPaid: 0,
+            balance: subtotal
+          };
+          state.invoices.unshift(invoice);
+          patient.history.unshift({
+            id: Date.now(),
+            date: invoice.date,
+            type: service.category,
+            title: service.name,
+            notes: state.historyForm.notes || `Remisión #${invoice.id} generada desde expediente. Método de pago: ${state.paymentMethod}. Médico: ${patient.doctor || 'Sin asignar'}.`
+          });
+        }
+        state.historyForm = { date:new Date().toISOString().slice(0,10), type:'Consulta', serviceId:'', notes:'' };
         render();
       };
     }
@@ -631,142 +462,34 @@
   function renderInvoices() {
     const subtotal = state.invoiceCart.reduce((a,b) => a + b.total, 0);
     app.innerHTML = `
-      ${sectionTitle('Remisiones', 'Ligadas al expediente, con método de pago y alta rápida de paciente.',
-        `<button id="btn-export-invoices" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium">Exportar registro</button>`)}
+      ${sectionTitle('Remisiones', 'Ligadas al expediente, con método de pago y alta rápida de paciente.', `<button id="btn-export-invoices" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium">Exportar registro</button>`)}
       <div class="grid grid-cols-1 xl:grid-cols-12 gap-4">
         <div class="card p-5 xl:col-span-4">
           <h3 class="text-lg font-semibold mb-4">Nueva remisión</h3>
           <label class="text-sm text-slate-500">Selecciona paciente</label>
-          <select id="invoice-patient" class="input mt-2">
-            ${state.patients.map(p => `<option value="${p.id}" ${Number(state.selectedInvoicePatientId) === p.id ? 'selected' : ''}>${esc(p.petName)} · ${esc(p.ownerName)}</option>`).join('')}
-          </select>
-
-          <div class="mt-4">
-            <label class="text-sm text-slate-500">Método de pago</label>
-            <select id="invoice-payment" class="input mt-2">
-              ${PAYMENT_METHODS.map(m => `<option ${state.paymentMethod === m ? 'selected' : ''}>${esc(m)}</option>`).join('')}
-            </select>
-          </div>
-
-          <div class="mt-5 rounded-2xl border border-slate-200 p-4 bg-slate-50">
-            <p class="font-medium mb-3">Alta rápida de cliente y mascota</p>
-            <div class="space-y-3">
-              ${patientFormHtml('quickPatient', state.quickPatientForm)}
-              <button id="btn-save-quick-patient" class="w-full rounded-2xl bg-white border border-slate-300 text-slate-900 py-3 font-medium">Guardar cliente y enviar a expedientes</button>
-            </div>
-          </div>
-
-          <div class="mt-5">
-            <p class="font-medium mb-3">Agregar servicios</p>
-            <div class="space-y-2 max-h-48 overflow-auto pr-1">
-              ${state.services.map(s => `
-                <button class="add-service w-full text-left rounded-2xl border border-slate-200 p-3 hover:bg-slate-50" data-id="${s.id}">
-                  <div class="flex items-center justify-between gap-3">
-                    <div>
-                      <p class="font-medium">${esc(s.name)}</p>
-                      <p class="text-xs text-slate-500">${esc(s.category)}</p>
-                    </div>
-                    <span class="text-sm font-medium">${money(s.basePrice)}</span>
-                  </div>
-                </button>
-              `).join('')}
-            </div>
-          </div>
-
-          <div class="mt-5">
-            <p class="font-medium mb-3">Agregar insumos</p>
-            <div class="space-y-2 max-h-56 overflow-auto pr-1">
-              ${state.inventory.map(i => `
-                <button class="add-inventory w-full text-left rounded-2xl border border-slate-200 p-3 hover:bg-slate-50" data-id="${i.id}">
-                  <div class="flex items-center justify-between gap-3">
-                    <div>
-                      <p class="font-medium">${esc(i.name)}</p>
-                      <p class="text-xs text-slate-500">Stock: ${i.stock} ${esc(i.unit)}</p>
-                    </div>
-                    <span class="text-sm font-medium">${money(i.price)}</span>
-                  </div>
-                </button>
-              `).join('')}
-            </div>
-          </div>
+          <select id="invoice-patient" class="input mt-2">${state.patients.map(p => `<option value="${p.id}" ${Number(state.selectedInvoicePatientId) === p.id ? 'selected' : ''}>${esc(p.petName)} · ${esc(p.ownerName)}</option>`).join('')}</select>
+          <div class="mt-4"><label class="text-sm text-slate-500">Método de pago</label><select id="invoice-payment" class="input mt-2">${PAYMENT_METHODS.map(m => `<option ${state.paymentMethod === m ? 'selected' : ''}>${esc(m)}</option>`).join('')}</select></div>
+          <div class="mt-5 rounded-2xl border border-slate-200 p-4 bg-slate-50"><p class="font-medium mb-3">Alta rápida de cliente y mascota</p><div class="space-y-3">${patientFormHtml('quickPatient', state.quickPatientForm)}<button id="btn-save-quick-patient" class="w-full rounded-2xl bg-white border border-slate-300 text-slate-900 py-3 font-medium">Guardar cliente y enviar a expedientes</button></div></div>
+          <div class="mt-5"><p class="font-medium mb-3">Agregar servicios</p><div class="space-y-2 max-h-48 overflow-auto pr-1">${state.catalog.map(s => `<button class="add-service w-full text-left rounded-2xl border border-slate-200 p-3 hover:bg-slate-50" data-id="${s.id}"><div class="flex items-center justify-between gap-3"><div><p class="font-medium">${esc(s.name)}</p><p class="text-xs text-slate-500">${esc(s.category)}</p></div><span class="text-sm font-medium">${money(s.basePrice)}</span></div></button>`).join('')}</div></div>
+          <div class="mt-5"><p class="font-medium mb-3">Agregar insumos</p><div class="space-y-2 max-h-56 overflow-auto pr-1">${state.inventory.map(i => `<button class="add-inventory w-full text-left rounded-2xl border border-slate-200 p-3 hover:bg-slate-50" data-id="${i.id}"><div class="flex items-center justify-between gap-3"><div><p class="font-medium">${esc(i.name)}</p><p class="text-xs text-slate-500">Stock: ${i.stock} ${esc(i.unit)}</p></div><span class="text-sm font-medium">${money(i.price)}</span></div></button>`).join('')}</div></div>
         </div>
-
         <div class="card p-5 xl:col-span-4">
           <h3 class="text-lg font-semibold mb-4">Detalle de remisión</h3>
-          <div class="space-y-3">
-            ${state.invoiceCart.length === 0 ? '<p class="text-sm text-slate-500">Agrega servicios o insumos para comenzar.</p>' : ''}
-            ${state.invoiceCart.map((line, index) => `
-              <div class="rounded-2xl border border-slate-200 p-3">
-                <div class="flex items-start justify-between gap-3">
-                  <div>
-                    <p class="font-medium text-slate-900">${esc(line.name)}</p>
-                    <p class="text-xs text-slate-500">${line.type === 'service' ? 'Servicio' : 'Inventario'}</p>
-                  </div>
-                  <button class="remove-cart p-2 rounded-xl hover:bg-slate-100" data-index="${index}">🗑️</button>
-                </div>
-                <div class="grid grid-cols-3 gap-2 mt-3 items-center">
-                  <input type="number" min="1" class="small-input cart-qty" data-index="${index}" value="${line.qty}">
-                  <div class="rounded-xl bg-slate-50 px-3 py-2 text-sm">${money(line.unitPrice)}</div>
-                  <div class="rounded-xl bg-slate-50 px-3 py-2 text-sm font-medium">${money(line.total)}</div>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-          <div class="mt-5 pt-4 border-t border-slate-200 space-y-2 text-sm">
-            <div class="flex justify-between"><span class="text-slate-500">Método de pago</span><span class="font-medium">${esc(state.paymentMethod)}</span></div>
-            <div class="flex justify-between"><span class="text-slate-500">Subtotal</span><span class="font-semibold">${money(subtotal)}</span></div>
-            <button id="btn-create-invoice" class="w-full mt-3 rounded-2xl bg-slate-900 text-white py-3 font-medium">Crear remisión</button>
-          </div>
+          <div class="space-y-3">${state.invoiceCart.length === 0 ? '<p class="text-sm text-slate-500">Agrega servicios o insumos para comenzar.</p>' : ''}${state.invoiceCart.map((line, idx) => `<div class="rounded-2xl border border-slate-200 p-3"><div class="flex items-start justify-between gap-3"><div><p class="font-medium text-slate-900">${esc(line.name)}</p><p class="text-xs text-slate-500">${line.type === 'service' ? 'Servicio' : 'Inventario'}</p></div><button class="remove-cart p-2 rounded-xl hover:bg-slate-100" data-index="${idx}">🗑️</button></div><div class="grid grid-cols-3 gap-2 mt-3 items-center"><input type="number" min="1" class="small-input cart-qty" data-index="${idx}" value="${line.qty}"><div class="rounded-xl bg-slate-50 px-3 py-2 text-sm">${money(line.unitPrice)}</div><div class="rounded-xl bg-slate-50 px-3 py-2 text-sm font-medium">${money(line.total)}</div></div></div>`).join('')}</div>
+          <div class="mt-5 pt-4 border-t border-slate-200 space-y-2 text-sm"><div class="flex justify-between"><span class="text-slate-500">Método de pago</span><span class="font-medium">${esc(state.paymentMethod)}</span></div><div class="flex justify-between"><span class="text-slate-500">Subtotal</span><span class="font-semibold">${money(subtotal)}</span></div><button id="btn-create-invoice" class="w-full mt-3 rounded-2xl bg-slate-900 text-white py-3 font-medium">Crear remisión</button></div>
         </div>
-
-        <div class="card p-5 xl:col-span-4">
-          <h3 class="text-lg font-semibold mb-4">Historial de remisiones</h3>
-          <div class="space-y-3 max-h-[720px] overflow-auto pr-1">
-            ${state.invoices.map(inv => `
-              <div class="rounded-2xl border border-slate-200 p-4">
-                <div class="flex items-start justify-between gap-3">
-                  <div>
-                    <p class="font-semibold">Remisión #${inv.id}</p>
-                    <p class="text-sm text-slate-500">${esc(inv.patientName)} · ${esc(inv.ownerName)}</p>
-                    <p class="text-xs text-slate-400 mt-1">${esc(inv.date)} · ${esc(inv.paymentMethod)}</p>
-                  </div>
-                  <span class="pill ${inv.status === 'Pagado' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}">${esc(inv.status)}</span>
-                </div>
-                <div class="mt-3 space-y-2 text-sm text-slate-600">
-                  ${inv.items.map(it => `<div class="flex justify-between gap-3"><span>${esc(it.name)} x${it.qty}</span><span>${money(it.total)}</span></div>`).join('')}
-                </div>
-                <div class="mt-3 pt-3 border-t border-slate-100 text-sm space-y-1">
-                  <div class="flex justify-between"><span class="text-slate-500">Total</span><span class="font-semibold">${money(inv.subtotal)}</span></div>
-                  <div class="flex justify-between"><span class="text-slate-500">Pagado</span><span>${money(inv.amountPaid)}</span></div>
-                  <div class="flex justify-between"><span class="text-slate-500">Saldo</span><span class="font-medium text-amber-600">${money(inv.balance)}</span></div>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      </div>
-    `;
-
+        <div class="card p-5 xl:col-span-4"><h3 class="text-lg font-semibold mb-4">Historial de remisiones</h3><div class="space-y-3 max-h-[720px] overflow-auto pr-1">${state.invoices.map(inv => `<div class="rounded-2xl border border-slate-200 p-4"><div class="flex items-start justify-between gap-3"><div><p class="font-semibold">Remisión #${inv.id}</p><p class="text-sm text-slate-500">${esc(inv.patientName)} · ${esc(inv.ownerName)}</p><p class="text-xs text-slate-400 mt-1">${esc(inv.date)} · ${esc(inv.paymentMethod)}</p></div><span class="pill ${inv.status === 'Pagado' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}">${esc(inv.status)}</span></div><div class="mt-3 space-y-2 text-sm text-slate-600">${inv.items.map(it => `<div class="flex justify-between gap-3"><span>${esc(it.name)} x${it.qty}</span><span>${money(it.total)}</span></div>`).join('')}</div><div class="mt-3 pt-3 border-t border-slate-100 text-sm space-y-1"><div class="flex justify-between"><span class="text-slate-500">Total</span><span class="font-semibold">${money(inv.subtotal)}</span></div><div class="flex justify-between"><span class="text-slate-500">Pagado</span><span>${money(inv.amountPaid)}</span></div><div class="flex justify-between"><span class="text-slate-500">Saldo</span><span class="font-medium text-amber-600">${money(inv.balance)}</span></div></div></div>`).join('')}</div></div>
+      </div>`;
     document.getElementById('btn-export-invoices').onclick = () => {
-      const blob = new Blob([JSON.stringify(state.invoices, null, 2)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(state.invoices, null, 2)], { type:'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = 'remisiones_veterinaria.json';
-      a.click();
+      a.href = url; a.download = 'remisiones_veterinaria.json'; a.click();
       URL.revokeObjectURL(url);
     };
-
-    document.getElementById('invoice-patient').onchange = (e) => {
-      state.selectedInvoicePatientId = Number(e.target.value);
-    };
-    document.getElementById('invoice-payment').onchange = (e) => {
-      state.paymentMethod = e.target.value;
-      render();
-    };
-
+    document.getElementById('invoice-patient').onchange = (e) => { state.selectedInvoicePatientId = Number(e.target.value); };
+    document.getElementById('invoice-payment').onchange = (e) => { state.paymentMethod = e.target.value; render(); };
     bindPatientForm('quickPatient', state.quickPatientForm);
-
     document.getElementById('btn-save-quick-patient').onclick = () => {
       const f = state.quickPatientForm;
       if (!f.petName || !f.species || !f.ownerName) return;
@@ -774,280 +497,104 @@
       state.patients.unshift(newPatient);
       state.selectedInvoicePatientId = newPatient.id;
       state.selectedPatientId = newPatient.id;
-      state.quickPatientForm = { petName:'', species:'', breed:'', age:'', birthDate:'', sex:'', ownerName:'', ownerAddress:'', email:'', phone:'', notes:'' };
+      state.quickPatientForm = { petName:'', species:'', breed:'', age:'', birthDate:'', sex:'', doctor: DOCTORS[0], ownerName:'', ownerAddress:'', email:'', phone:'', notes:'' };
       state.tab = 'patients';
       render();
     };
-
-    document.querySelectorAll('.add-service').forEach(btn => {
-      btn.onclick = () => {
-        const service = state.services.find(s => s.id === Number(btn.dataset.id));
-        if (!service) return;
-        state.invoiceCart.push({ uid: Date.now() + Math.random(), type:'service', refId:service.id, name:service.name, qty:1, unitPrice:service.basePrice, total:service.basePrice });
-        render();
-      };
+    document.querySelectorAll('.add-service').forEach(btn => btn.onclick = () => {
+      const s = state.catalog.find(x => x.id === Number(btn.dataset.id)); if (!s) return;
+      state.invoiceCart.push({ uid: Date.now() + Math.random(), type:'service', refId:s.id, name:s.name, qty:1, unitPrice:s.basePrice, total:s.basePrice }); render();
     });
-
-    document.querySelectorAll('.add-inventory').forEach(btn => {
-      btn.onclick = () => {
-        const item = state.inventory.find(i => i.id === Number(btn.dataset.id));
-        if (!item) return;
-        state.invoiceCart.push({ uid: Date.now() + Math.random(), type:'inventory', refId:item.id, name:item.name, qty:1, unitPrice:item.price, total:item.price });
-        render();
-      };
+    document.querySelectorAll('.add-inventory').forEach(btn => btn.onclick = () => {
+      const i = state.inventory.find(x => x.id === Number(btn.dataset.id)); if (!i) return;
+      state.invoiceCart.push({ uid: Date.now() + Math.random(), type:'inventory', refId:i.id, name:i.name, qty:1, unitPrice:i.price, total:i.price }); render();
     });
-
-    document.querySelectorAll('.remove-cart').forEach(btn => {
-      btn.onclick = () => {
-        const index = Number(btn.dataset.index);
-        state.invoiceCart.splice(index, 1);
-        render();
-      };
+    document.querySelectorAll('.remove-cart').forEach(btn => btn.onclick = () => { state.invoiceCart.splice(Number(btn.dataset.index), 1); render(); });
+    document.querySelectorAll('.cart-qty').forEach(input => input.oninput = () => {
+      const idx = Number(input.dataset.index), line = state.invoiceCart[idx]; if (!line) return;
+      line.qty = Number(input.value || 1); line.total = line.qty * line.unitPrice; render();
     });
-
-    document.querySelectorAll('.cart-qty').forEach(input => {
-      input.oninput = () => {
-        const index = Number(input.dataset.index);
-        const qty = Number(input.value || 1);
-        const line = state.invoiceCart[index];
-        if (!line) return;
-        line.qty = qty;
-        line.total = qty * line.unitPrice;
-        render();
-      };
-    });
-
     document.getElementById('btn-create-invoice').onclick = () => {
-      const patient = invoicePatient();
-      if (!patient || state.invoiceCart.length === 0) return;
-
+      const patient = invoicePatient(); if (!patient || !state.invoiceCart.length) return;
       const subtotal = state.invoiceCart.reduce((a,b) => a + b.total, 0);
-      const inventoryLines = state.invoiceCart.filter(c => c.type === 'inventory');
-
+      const inventoryLines = state.invoiceCart.filter(x => x.type === 'inventory');
       state.inventory = state.inventory.map(item => {
         const used = inventoryLines.filter(line => line.refId === item.id).reduce((a,b) => a + Number(b.qty || 0), 0);
         return used ? { ...item, stock: Math.max(0, item.stock - used) } : item;
       });
-
-      const newInvoice = {
-        id: Math.floor(1000 + Math.random() * 9000),
-        date: new Date().toISOString().slice(0,10),
-        patientId: patient.id,
-        patientName: patient.petName,
-        ownerName: patient.ownerName,
-        items: state.invoiceCart.map(x => ({ ...x })),
-        paymentMethod: state.paymentMethod,
-        subtotal,
-        status: 'Pendiente',
-        amountPaid: 0,
-        balance: subtotal
-      };
-
-      state.invoices.unshift(newInvoice);
-
-      const serviceNames = state.invoiceCart.map(item => `${item.name} x${item.qty}`).join(', ');
-      patient.history.unshift({
-        id: Date.now(),
-        date: newInvoice.date,
-        type: 'Servicio',
-        title: `Remisión #${newInvoice.id}`,
-        notes: `Método de pago: ${state.paymentMethod}. Servicios e insumos: ${serviceNames}. Total: ${money(newInvoice.subtotal)}.`
-      });
-
-      state.invoiceCart = [];
-      render();
+      const invoice = { id: Math.floor(1000 + Math.random() * 9000), date: new Date().toISOString().slice(0,10), patientId: patient.id, patientName: patient.petName, ownerName: patient.ownerName, items: state.invoiceCart.map(x => ({ ...x })), paymentMethod: state.paymentMethod, subtotal, status:'Pendiente', amountPaid:0, balance:subtotal };
+      state.invoices.unshift(invoice);
+      patient.history.unshift({ id: Date.now(), date: invoice.date, type:'Servicio', title:`Remisión #${invoice.id}`, notes:`Método de pago: ${state.paymentMethod}. Servicios e insumos: ${invoice.items.map(i => `${i.name} x${i.qty}`).join(', ')}. Total: ${money(invoice.subtotal)}.` });
+      state.invoiceCart = []; render();
     };
   }
 
   function renderBilling() {
-    app.innerHTML = `
-      ${sectionTitle('Cobranza', 'Administra pagos y saldos pendientes derivados de cada remisión.')}
-      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        ${state.invoices.map(inv => `
-          <div class="card p-5">
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <p class="text-lg font-semibold">#${inv.id}</p>
-                <p class="text-sm text-slate-500">${esc(inv.patientName)} · ${esc(inv.ownerName)}</p>
-                <p class="text-xs text-slate-400 mt-1">${esc(inv.paymentMethod)}</p>
-              </div>
-              <span class="pill ${inv.status === 'Pagado' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}">${esc(inv.status)}</span>
-            </div>
-            <div class="mt-4 space-y-2 text-sm">
-              <div class="flex justify-between"><span class="text-slate-500">Total</span><span class="font-medium">${money(inv.subtotal)}</span></div>
-              <div class="flex justify-between"><span class="text-slate-500">Cobrado</span><span class="font-medium">${money(inv.amountPaid)}</span></div>
-              <div class="flex justify-between"><span class="text-slate-500">Pendiente</span><span class="font-medium text-amber-600">${money(inv.balance)}</span></div>
-            </div>
-            <div class="mt-4 flex gap-2">
-              <input type="number" class="input payment-field" data-id="${inv.id}" placeholder="Monto">
-              <button class="apply-payment rounded-2xl bg-slate-900 text-white px-4 py-3 font-medium" data-id="${inv.id}">Aplicar</button>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    `;
-
-    document.querySelectorAll('.apply-payment').forEach(btn => {
-      btn.onclick = () => {
-        const id = Number(btn.dataset.id);
-        const input = document.querySelector('.payment-field[data-id="' + id + '"]');
-        const amount = Number(input.value || 0);
-        if (!amount) return;
-        state.invoices = state.invoices.map(inv => {
-          if (inv.id !== id) return inv;
-          const amountPaid = Math.min(inv.subtotal, inv.amountPaid + amount);
-          const balance = Math.max(0, inv.subtotal - amountPaid);
-          return { ...inv, amountPaid, balance, status: balance === 0 ? 'Pagado' : 'Pendiente' };
-        });
-        render();
-      };
+    app.innerHTML = `${sectionTitle('Cobranza', 'Administra pagos y saldos pendientes derivados de cada remisión.')}
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">${state.invoices.map(inv => `
+        <div class="card p-5">
+          <div class="flex items-start justify-between gap-3"><div><p class="text-lg font-semibold">#${inv.id}</p><p class="text-sm text-slate-500">${esc(inv.patientName)} · ${esc(inv.ownerName)}</p><p class="text-xs text-slate-400 mt-1">${esc(inv.paymentMethod)}</p></div><span class="pill ${inv.status === 'Pagado' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}">${esc(inv.status)}</span></div>
+          <div class="mt-4 space-y-2 text-sm"><div class="flex justify-between"><span class="text-slate-500">Total</span><span class="font-medium">${money(inv.subtotal)}</span></div><div class="flex justify-between"><span class="text-slate-500">Cobrado</span><span class="font-medium">${money(inv.amountPaid)}</span></div><div class="flex justify-between"><span class="text-slate-500">Pendiente</span><span class="font-medium text-amber-600">${money(inv.balance)}</span></div></div>
+          <div class="mt-4 flex gap-2"><input class="input payment-input" data-id="${inv.id}" type="number" placeholder="Monto"><button class="apply-payment rounded-2xl bg-slate-900 text-white px-4 py-3 font-medium" data-id="${inv.id}">Aplicar</button></div>
+        </div>`).join('')}</div>`;
+    document.querySelectorAll('.apply-payment').forEach(btn => btn.onclick = () => {
+      const id = Number(btn.dataset.id);
+      const input = document.querySelector('.payment-input[data-id="' + id + '"]');
+      const amount = Number(input.value || 0);
+      if (!amount) return;
+      state.invoices = state.invoices.map(inv => {
+        if (inv.id !== id) return inv;
+        const amountPaid = Math.min(inv.subtotal, inv.amountPaid + amount);
+        const balance = Math.max(0, inv.subtotal - amountPaid);
+        return { ...inv, amountPaid, balance, status: balance === 0 ? 'Pagado' : 'Pendiente' };
+      });
+      render();
     });
   }
 
   function renderPrescriptions() {
     const patient = prescriptionPatient();
-    app.innerHTML = `
-      ${sectionTitle('Recetas', 'Formato listo para descargar o imprimir por los veterinarios.')}
+    app.innerHTML = `${sectionTitle('Recetas', 'Las recetas guardadas permanecen al cambiar de menú.')}
       <div class="grid grid-cols-1 xl:grid-cols-12 gap-4">
         <div class="card p-5 xl:col-span-5">
           <h3 class="text-lg font-semibold mb-4">Nueva receta</h3>
           <div class="space-y-3">
-            <select id="prescription-patient" class="input">
-              ${state.patients.map(p => `<option value="${p.id}" ${Number(state.selectedPrescriptionPatientId) === p.id ? 'selected' : ''}>${esc(p.petName)} · ${esc(p.ownerName)}</option>`).join('')}
-            </select>
-            <select id="prescription-doctor" class="input">
-              ${DOCTORS.map(d => `<option ${state.prescriptionForm.doctor === d ? 'selected' : ''}>${esc(d)}</option>`).join('')}
-            </select>
-
-            ${patient ? `
-              <div class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-700 space-y-1">
-                <p><span class="font-medium">Propietario:</span> ${esc(patient.ownerName)}</p>
-                <p><span class="font-medium">Paciente:</span> ${esc(patient.petName)}</p>
-                <p><span class="font-medium">Fecha nacimiento:</span> ${esc(patient.birthDate || 'No capturada')}</p>
-                <p><span class="font-medium">Edad:</span> ${esc(patient.age || 'No capturada')}</p>
-                <p><span class="font-medium">Raza:</span> ${esc(patient.breed || 'No capturada')}</p>
-                <p><span class="font-medium">Sexo:</span> ${esc(patient.sex || 'No capturado')}</p>
-                <p><span class="font-medium">Dirección:</span> ${esc(patient.ownerAddress || 'No capturada')}</p>
-                <p><span class="font-medium">Celular:</span> ${esc(patient.phone || 'No capturado')}</p>
-              </div>
-            ` : ''}
-
-            <textarea id="prescription-body" class="input min-h-[220px]" placeholder="Indicaciones médicas, dosis, duración, observaciones...">${esc(state.prescriptionForm.body)}</textarea>
-            <button id="btn-save-prescription" class="w-full rounded-2xl bg-slate-900 text-white py-3 font-medium">Guardar receta</button>
+            <select id="rx-patient" class="input">${state.patients.map(p => `<option value="${p.id}" ${Number(state.selectedPrescriptionPatientId) === p.id ? 'selected' : ''}>${esc(p.petName)} · ${esc(p.ownerName)}</option>`).join('')}</select>
+            <select id="rx-doctor" class="input">${DOCTORS.map(d => `<option ${state.prescriptionForm.doctor === d ? 'selected' : ''}>${esc(d)}</option>`).join('')}</select>
+            ${patient ? `<div class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-700 space-y-1"><p><span class="font-medium">Propietario:</span> ${esc(patient.ownerName)}</p><p><span class="font-medium">Médico:</span> ${esc(patient.doctor || 'Sin asignar')}</p><p><span class="font-medium">Paciente:</span> ${esc(patient.petName)}</p><p><span class="font-medium">Fecha nacimiento:</span> ${esc(patient.birthDate || 'No capturada')}</p><p><span class="font-medium">Edad:</span> ${esc(patient.age || 'No capturada')}</p><p><span class="font-medium">Raza:</span> ${esc(patient.breed || 'No capturada')}</p><p><span class="font-medium">Sexo:</span> ${esc(patient.sex || 'No capturado')}</p><p><span class="font-medium">Dirección:</span> ${esc(patient.ownerAddress || 'No capturada')}</p><p><span class="font-medium">Celular:</span> ${esc(patient.phone || 'No capturado')}</p></div>` : ''}
+            <textarea id="rx-body" class="input min-h-[220px]" placeholder="Indicaciones médicas, dosis, duración, observaciones...">${esc(state.prescriptionForm.body)}</textarea>
+            <button id="btn-save-rx" class="w-full rounded-2xl bg-slate-900 text-white py-3 font-medium">Guardar receta</button>
           </div>
         </div>
-
-        <div class="card p-5 xl:col-span-7">
-          <h3 class="text-lg font-semibold mb-4">Historial de recetas</h3>
-          <div class="space-y-3 max-h-[760px] overflow-auto pr-1">
-            ${state.prescriptions.map(rx => `
-              <div class="rounded-2xl border border-slate-200 p-4">
-                <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                  <div>
-                    <p class="font-semibold">${esc(rx.patientName)}</p>
-                    <p class="text-sm text-slate-500">${esc(rx.ownerName)} · ${esc(rx.doctor)}</p>
-                    <p class="text-xs text-slate-400 mt-1">${esc(rx.createdAt)}</p>
-                  </div>
-                  <div class="flex gap-2">
-                    <button class="print-rx rounded-2xl border border-slate-200 px-3 py-2 text-sm font-medium" data-id="${rx.id}">Imprimir</button>
-                    <button class="download-rx rounded-2xl border border-slate-200 px-3 py-2 text-sm font-medium" data-id="${rx.id}">Descargar</button>
-                  </div>
-                </div>
-                <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-slate-600">
-                  <div class="rounded-2xl bg-slate-50 p-3">
-                    <p><span class="font-medium">Propietario:</span> ${esc(rx.ownerName)}</p>
-                    <p><span class="font-medium">Paciente:</span> ${esc(rx.patientName)}</p>
-                    <p><span class="font-medium">Fecha nacimiento:</span> ${esc(rx.birthDate || '—')}</p>
-                    <p><span class="font-medium">Edad:</span> ${esc(rx.age || '—')}</p>
-                    <p><span class="font-medium">Raza:</span> ${esc(rx.breed || '—')}</p>
-                    <p><span class="font-medium">Sexo:</span> ${esc(rx.sex || '—')}</p>
-                  </div>
-                  <div class="rounded-2xl bg-slate-50 p-3">
-                    <p><span class="font-medium">Dirección:</span> ${esc(rx.ownerAddress || '—')}</p>
-                    <p><span class="font-medium">Celular:</span> ${esc(rx.ownerPhone || '—')}</p>
-                  </div>
-                </div>
-                <div class="mt-3 rounded-2xl bg-slate-50 p-3 whitespace-pre-wrap text-sm text-slate-700">${esc(rx.body || 'Sin indicaciones.')}</div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      </div>
-    `;
-
-    document.getElementById('prescription-patient').onchange = (e) => {
-      state.selectedPrescriptionPatientId = Number(e.target.value);
-      render();
+        <div class="card p-5 xl:col-span-7"><h3 class="text-lg font-semibold mb-4">Historial de recetas</h3><div class="space-y-3 max-h-[760px] overflow-auto pr-1">${state.prescriptions.map(rx => `<div class="rounded-2xl border border-slate-200 p-4"><div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4"><div><p class="font-semibold">${esc(rx.patientName)}</p><p class="text-sm text-slate-500">${esc(rx.ownerName)} · ${esc(rx.doctor)}</p><p class="text-xs text-slate-400 mt-1">${esc(rx.createdAt)}</p></div><div class="flex gap-2"><button class="print-rx rounded-2xl border border-slate-200 px-3 py-2 text-sm font-medium" data-id="${rx.id}">Imprimir</button><button class="download-rx rounded-2xl border border-slate-200 px-3 py-2 text-sm font-medium" data-id="${rx.id}">Descargar</button></div></div><div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-slate-600"><div class="rounded-2xl bg-slate-50 p-3"><p><span class="font-medium">Propietario:</span> ${esc(rx.ownerName)}</p><p><span class="font-medium">Paciente:</span> ${esc(rx.patientName)}</p><p><span class="font-medium">Fecha nacimiento:</span> ${esc(rx.birthDate || '—')}</p><p><span class="font-medium">Edad:</span> ${esc(rx.age || '—')}</p><p><span class="font-medium">Raza:</span> ${esc(rx.breed || '—')}</p><p><span class="font-medium">Sexo:</span> ${esc(rx.sex || '—')}</p></div><div class="rounded-2xl bg-slate-50 p-3"><p><span class="font-medium">Dirección:</span> ${esc(rx.ownerAddress || '—')}</p><p><span class="font-medium">Celular:</span> ${esc(rx.ownerPhone || '—')}</p></div></div><div class="mt-3 rounded-2xl bg-slate-50 p-3 whitespace-pre-wrap text-sm text-slate-700">${esc(rx.body || 'Sin indicaciones.')}</div></div>`).join('')}</div></div>
+      </div>`;
+    document.getElementById('rx-patient').onchange = (e) => { state.selectedPrescriptionPatientId = Number(e.target.value); render(); };
+    document.getElementById('rx-doctor').onchange = (e) => { state.prescriptionForm.doctor = e.target.value; };
+    document.getElementById('rx-body').oninput = (e) => { state.prescriptionForm.body = e.target.value; };
+    document.getElementById('btn-save-rx').onclick = () => {
+      const p = prescriptionPatient(); if (!p) return;
+      state.prescriptions.unshift({ id: Date.now(), ownerName: p.ownerName, patientId: p.id, patientName: p.petName, birthDate: p.birthDate || '', age: p.age || '', breed: p.breed || '', sex: p.sex || '', ownerAddress: p.ownerAddress || '', ownerPhone: p.phone || '', doctor: state.prescriptionForm.doctor, body: state.prescriptionForm.body, createdAt: new Date().toISOString().slice(0,10) });
+      state.prescriptionForm.body = ''; render();
     };
-    document.getElementById('prescription-doctor').onchange = (e) => {
-      state.prescriptionForm.doctor = e.target.value;
-    };
-    document.getElementById('prescription-body').oninput = (e) => {
-      state.prescriptionForm.body = e.target.value;
-    };
-
-    document.getElementById('btn-save-prescription').onclick = () => {
-      const p = prescriptionPatient();
-      if (!p) return;
-      state.prescriptions.unshift({
-        id: Date.now(),
-        ownerName: p.ownerName,
-        patientId: p.id,
-        patientName: p.petName,
-        birthDate: p.birthDate || '',
-        age: p.age || '',
-        breed: p.breed || '',
-        sex: p.sex || '',
-        ownerAddress: p.ownerAddress || '',
-        ownerPhone: p.phone || '',
-        doctor: state.prescriptionForm.doctor,
-        body: state.prescriptionForm.body,
-        createdAt: new Date().toISOString().slice(0,10)
-      });
-      state.prescriptionForm.body = '';
-      render();
-    };
-
-    document.querySelectorAll('.print-rx').forEach(btn => {
-      btn.onclick = () => {
-        const id = Number(btn.dataset.id);
-        const rx = state.prescriptions.find(r => r.id === id);
-        if (!rx) return;
-        const sheet = document.getElementById('print-sheet');
-        sheet.innerHTML = `
-          <h1 style="font-size:24px;font-weight:700;margin-bottom:16px;">Receta Veterinaria</h1>
-          <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
-            <tr><th style="border:1px solid #ccc;padding:10px;text-align:left;">Propietario</th><td style="border:1px solid #ccc;padding:10px;">${esc(rx.ownerName)}</td><th style="border:1px solid #ccc;padding:10px;text-align:left;">Médico</th><td style="border:1px solid #ccc;padding:10px;">${esc(rx.doctor)}</td></tr>
-            <tr><th style="border:1px solid #ccc;padding:10px;text-align:left;">Paciente</th><td style="border:1px solid #ccc;padding:10px;">${esc(rx.patientName)}</td><th style="border:1px solid #ccc;padding:10px;text-align:left;">Fecha</th><td style="border:1px solid #ccc;padding:10px;">${esc(rx.createdAt)}</td></tr>
-            <tr><th style="border:1px solid #ccc;padding:10px;text-align:left;">Fecha nacimiento</th><td style="border:1px solid #ccc;padding:10px;">${esc(rx.birthDate)}</td><th style="border:1px solid #ccc;padding:10px;text-align:left;">Edad</th><td style="border:1px solid #ccc;padding:10px;">${esc(rx.age)}</td></tr>
-            <tr><th style="border:1px solid #ccc;padding:10px;text-align:left;">Raza</th><td style="border:1px solid #ccc;padding:10px;">${esc(rx.breed)}</td><th style="border:1px solid #ccc;padding:10px;text-align:left;">Sexo</th><td style="border:1px solid #ccc;padding:10px;">${esc(rx.sex)}</td></tr>
-            <tr><th style="border:1px solid #ccc;padding:10px;text-align:left;">Dirección</th><td colspan="3" style="border:1px solid #ccc;padding:10px;">${esc(rx.ownerAddress)}</td></tr>
-            <tr><th style="border:1px solid #ccc;padding:10px;text-align:left;">Celular</th><td colspan="3" style="border:1px solid #ccc;padding:10px;">${esc(rx.ownerPhone)}</td></tr>
-          </table>
-          <div style="border:1px solid #ccc;padding:14px;min-height:180px;white-space:pre-wrap;">${esc(rx.body)}</div>
-        `;
-        sheet.style.display = 'block';
-        document.body.classList.add('printing');
-        window.print();
-        document.body.classList.remove('printing');
-        sheet.style.display = 'none';
-      };
+    document.querySelectorAll('.print-rx').forEach(btn => btn.onclick = () => {
+      const rx = state.prescriptions.find(r => r.id === Number(btn.dataset.id)); if (!rx) return;
+      const sheet = document.getElementById('print-sheet');
+      sheet.innerHTML = `<h1 style="font-size:24px;font-weight:700;margin-bottom:16px;">Receta Veterinaria</h1>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
+          <tr><th style="border:1px solid #ccc;padding:10px;text-align:left;">Propietario</th><td style="border:1px solid #ccc;padding:10px;">${esc(rx.ownerName)}</td><th style="border:1px solid #ccc;padding:10px;text-align:left;">Médico</th><td style="border:1px solid #ccc;padding:10px;">${esc(rx.doctor)}</td></tr>
+          <tr><th style="border:1px solid #ccc;padding:10px;text-align:left;">Paciente</th><td style="border:1px solid #ccc;padding:10px;">${esc(rx.patientName)}</td><th style="border:1px solid #ccc;padding:10px;text-align:left;">Fecha</th><td style="border:1px solid #ccc;padding:10px;">${esc(rx.createdAt)}</td></tr>
+          <tr><th style="border:1px solid #ccc;padding:10px;text-align:left;">Fecha nacimiento</th><td style="border:1px solid #ccc;padding:10px;">${esc(rx.birthDate)}</td><th style="border:1px solid #ccc;padding:10px;text-align:left;">Edad</th><td style="border:1px solid #ccc;padding:10px;">${esc(rx.age)}</td></tr>
+          <tr><th style="border:1px solid #ccc;padding:10px;text-align:left;">Raza</th><td style="border:1px solid #ccc;padding:10px;">${esc(rx.breed)}</td><th style="border:1px solid #ccc;padding:10px;text-align:left;">Sexo</th><td style="border:1px solid #ccc;padding:10px;">${esc(rx.sex)}</td></tr>
+          <tr><th style="border:1px solid #ccc;padding:10px;text-align:left;">Dirección</th><td colspan="3" style="border:1px solid #ccc;padding:10px;">${esc(rx.ownerAddress)}</td></tr>
+          <tr><th style="border:1px solid #ccc;padding:10px;text-align:left;">Celular</th><td colspan="3" style="border:1px solid #ccc;padding:10px;">${esc(rx.ownerPhone)}</td></tr>
+        </table>
+        <div style="border:1px solid #ccc;padding:14px;min-height:180px;white-space:pre-wrap;">${esc(rx.body)}</div>`;
+      sheet.style.display = 'block'; document.body.classList.add('printing'); window.print(); document.body.classList.remove('printing'); sheet.style.display = 'none';
     });
-
-    document.querySelectorAll('.download-rx').forEach(btn => {
-      btn.onclick = () => {
-        const id = Number(btn.dataset.id);
-        const rx = state.prescriptions.find(r => r.id === id);
-        if (!rx) return;
-        const text = `Propietario: ${rx.ownerName}\nPaciente: ${rx.patientName}\nFecha nacimiento: ${rx.birthDate}\nEdad: ${rx.age}\nRaza: ${rx.breed}\nSexo: ${rx.sex}\nDirección: ${rx.ownerAddress}\nCelular: ${rx.ownerPhone}\nMédico: ${rx.doctor}\nFecha: ${rx.createdAt}\n\nIndicaciones:\n${rx.body}`;
-        const blob = new Blob([text], { type:'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `receta_${rx.patientName}.txt`;
-        a.click();
-        URL.revokeObjectURL(url);
-      };
+    document.querySelectorAll('.download-rx').forEach(btn => btn.onclick = () => {
+      const rx = state.prescriptions.find(r => r.id === Number(btn.dataset.id)); if (!rx) return;
+      const text = `Propietario: ${rx.ownerName}\nPaciente: ${rx.patientName}\nFecha nacimiento: ${rx.birthDate}\nEdad: ${rx.age}\nRaza: ${rx.breed}\nSexo: ${rx.sex}\nDirección: ${rx.ownerAddress}\nCelular: ${rx.ownerPhone}\nMédico: ${rx.doctor}\nFecha: ${rx.createdAt}\n\nIndicaciones:\n${rx.body}`;
+      const blob = new Blob([text], { type:'text/plain;charset=utf-8' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `receta_${rx.patientName}.txt`; a.click(); URL.revokeObjectURL(url);
     });
   }
 
@@ -1061,13 +608,13 @@
 
   function render() {
     renderNav();
-    if (state.tab === 'dashboard') return renderDashboard();
-    if (state.tab === 'inventory') return renderInventory();
-    if (state.tab === 'services') return renderServices();
-    if (state.tab === 'patients') return renderPatients();
-    if (state.tab === 'invoices') return renderInvoices();
-    if (state.tab === 'billing') return renderBilling();
-    if (state.tab === 'prescriptions') return renderPrescriptions();
+    if (state.tab === 'dashboard') renderDashboard();
+    if (state.tab === 'inventory') renderInventory();
+    if (state.tab === 'catalog') renderCatalog();
+    if (state.tab === 'patients') renderPatients();
+    if (state.tab === 'invoices') renderInvoices();
+    if (state.tab === 'billing') renderBilling();
+    if (state.tab === 'prescriptions') renderPrescriptions();
   }
 
   render();
